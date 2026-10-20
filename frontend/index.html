@@ -203,11 +203,12 @@
                 >
                   Artwork
                 </div>
-                <input id="cover-input" type="file" accept="image/*" class="hidden" />
+                <input id="cover-input" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" class="hidden" />
                 <span
-                  class="pointer-events-none absolute inset-x-0 bottom-0 bg-black/60 py-2 text-center text-[11px] text-zinc-200 opacity-0 transition group-hover:opacity-100"
+                  class="pointer-events-none absolute inset-x-0 bottom-0 bg-black/70 px-2 py-2 text-center text-[11px] leading-relaxed text-zinc-100 opacity-0 transition group-hover:opacity-100"
                 >
                   Replace cover
+                  <span class="mt-0.5 block text-[10px] font-normal tracking-wide text-zinc-300">Supported types: JPG, JPEG, PNG, WEBP</span>
                 </span>
               </label>
               <div class="min-w-0 flex-1">

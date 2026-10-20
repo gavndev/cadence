@@ -383,6 +383,26 @@ def write_metadata(path: Path, tags: dict[str, str]) -> dict[str, Any]:
     return read_metadata(path)
 
 
+def web_image_type(data: bytes) -> str:
+    if len(data) >= 12 and data[4:8] == b"ftyp" and data[8:12] in {
+        b"heic",
+        b"heix",
+        b"hevc",
+        b"heif",
+        b"mif1",
+        b"msf1",
+    }:
+        raise ValueError("Use a JPG, JPEG, PNG, or WEBP image.")
+    header = data[:16]
+    if header.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image/png"
+    if header.startswith(b"\xff\xd8"):
+        return "image/jpeg"
+    if len(header) >= 12 and header.startswith(b"RIFF") and header[8:12] == b"WEBP":
+        return "image/webp"
+    raise ValueError("Use a JPG, JPEG, PNG, or WEBP image.")
+
+
 def image_mime(mime: str | None, data: bytes) -> str:
     header = data[:16]
     if header.startswith(b"\x89PNG\r\n\x1a\n"):
@@ -451,7 +471,7 @@ def extract_artwork(path: Path) -> tuple[bytes | None, str | None]:
 
 def write_artwork(path: Path, data: bytes, mime: str) -> None:
     suffix = path.suffix.lower()
-    mime = image_mime(mime, data)
+    mime = web_image_type(data)
 
     if suffix in {".m4a", ".mp4", ".aac"}:
         audio = MP4(path.as_posix())

@@ -354,10 +354,40 @@ inspector.addEventListener("submit", async (event) => {
   }
 });
 
+function allowedCoverType(header) {
+  if (header.length >= 8 && header[0] === 0x89 && header[1] === 0x50 && header[2] === 0x4e && header[3] === 0x47) {
+    return "image/png";
+  }
+  if (header.length >= 3 && header[0] === 0xff && header[1] === 0xd8 && header[2] === 0xff) {
+    return "image/jpeg";
+  }
+  if (
+    header.length >= 12 &&
+    header[0] === 0x52 &&
+    header[1] === 0x49 &&
+    header[2] === 0x46 &&
+    header[3] === 0x46 &&
+    header[8] === 0x57 &&
+    header[9] === 0x45 &&
+    header[10] === 0x42 &&
+    header[11] === 0x50
+  ) {
+    return "image/webp";
+  }
+  return "";
+}
+
 coverInput.addEventListener("change", async () => {
   if (!selectedId || !coverInput.files[0]) return;
+  const file = coverInput.files[0];
+  const header = new Uint8Array(await file.slice(0, 16).arrayBuffer());
+  if (!allowedCoverType(header)) {
+    saveStatus.textContent = "Use a JPG, JPEG, PNG, or WEBP image.";
+    coverInput.value = "";
+    return;
+  }
   const body = new FormData();
-  body.append("file", coverInput.files[0]);
+  body.append("file", file);
   saveStatus.textContent = "";
   try {
     await api(`/api/files/${selectedId}/artwork`, { method: "POST", body });

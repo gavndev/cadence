@@ -211,7 +211,9 @@ async def api_upload_artwork(
         raise HTTPException(status_code=400, detail="Empty image")
 
     try:
-        write_artwork(path, data, file.content_type or "image/jpeg")
+        write_artwork(path, data, file.content_type or "")
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
         raise HTTPException(status_code=422, detail=f"Could not write artwork: {exc}") from exc
 
