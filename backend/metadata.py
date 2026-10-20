@@ -383,6 +383,24 @@ def write_metadata(path: Path, tags: dict[str, str]) -> dict[str, Any]:
     return read_metadata(path)
 
 
+def image_mime(mime: str | None, data: bytes) -> str:
+    header = data[:16]
+    if header.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image/png"
+    if header.startswith(b"\xff\xd8"):
+        return "image/jpeg"
+    if header.startswith(b"GIF87a") or header.startswith(b"GIF89a"):
+        return "image/gif"
+    if len(header) >= 12 and header.startswith(b"RIFF") and header[8:12] == b"WEBP":
+        return "image/webp"
+    cleaned = (mime or "").split(";", 1)[0].strip().lower()
+    if cleaned in {"image/jpg", "image/pjpeg", "image/x-citrix-jpeg"}:
+        return "image/jpeg"
+    if cleaned.startswith("image/"):
+        return cleaned
+    return "image/jpeg"
+
+
 def extract_artwork(path: Path) -> tuple[bytes | None, str | None]:
     suffix = path.suffix.lower()
 
@@ -391,15 +409,17 @@ def extract_artwork(path: Path) -> tuple[bytes | None, str | None]:
         covers = audio.tags.get("covr") if audio.tags else None
         if covers:
             cover = covers[0]
+            raw = bytes(cover)
             mime = "image/png" if getattr(cover, "imageformat", None) == MP4Cover.FORMAT_PNG else "image/jpeg"
-            return bytes(cover), mime
+            return raw, image_mime(mime, raw)
         return None, None
 
     if suffix == ".flac":
         audio = FLAC(path.as_posix())
         if audio.pictures:
             picture = audio.pictures[0]
-            return bytes(picture.data), picture.mime or "image/jpeg"
+            raw = bytes(picture.data)
+            return raw, image_mime(picture.mime, raw)
         return None, None
 
     try:
@@ -411,24 +431,27 @@ def extract_artwork(path: Path) -> tuple[bytes | None, str | None]:
 
     if id3 is not None:
         for frame in id3.getall("APIC"):
-            return bytes(frame.data), frame.mime or "image/jpeg"
+            raw = bytes(frame.data)
+            return raw, image_mime(frame.mime, raw)
 
     audio = MutagenFile(path.as_posix())
     pictures = getattr(audio, "pictures", None)
     if pictures:
         picture = pictures[0]
-        return bytes(picture.data), getattr(picture, "mime", None) or "image/jpeg"
+        raw = bytes(picture.data)
+        return raw, image_mime(getattr(picture, "mime", None), raw)
 
     if isinstance(audio, WAVE) and audio.tags:
         for frame in audio.tags.getall("APIC"):
-            return bytes(frame.data), frame.mime or "image/jpeg"
+            raw = bytes(frame.data)
+            return raw, image_mime(frame.mime, raw)
 
     return None, None
 
 
 def write_artwork(path: Path, data: bytes, mime: str) -> None:
     suffix = path.suffix.lower()
-    mime = mime or "image/jpeg"
+    mime = image_mime(mime, data)
 
     if suffix in {".m4a", ".mp4", ".aac"}:
         audio = MP4(path.as_posix())

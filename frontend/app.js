@@ -169,6 +169,51 @@ function renderFiles(query = "") {
     .join("");
 }
 
+function showCoverFallback() {
+  coverArt.onload = null;
+  coverArt.onerror = null;
+  coverArt.removeAttribute("src");
+  coverArt.classList.add("hidden");
+  coverFallback.classList.remove("hidden");
+}
+
+async function displayArtwork(response) {
+  const raw = await response.blob();
+  const header = new Uint8Array(await raw.slice(0, 16).arrayBuffer());
+  let type = "application/octet-stream";
+  if (header.length >= 8 && header[0] === 0x89 && header[1] === 0x50) type = "image/png";
+  else if (header.length >= 2 && header[0] === 0xff && header[1] === 0xd8) type = "image/jpeg";
+  else if (header.length >= 6 && header[0] === 0x47 && header[1] === 0x49 && header[2] === 0x46) type = "image/gif";
+  else if (
+    header.length >= 12 &&
+    header[0] === 0x52 &&
+    header[8] === 0x57 &&
+    header[9] === 0x45 &&
+    header[10] === 0x42 &&
+    header[11] === 0x50
+  ) {
+    type = "image/webp";
+  } else if ((raw.type || "").startsWith("image/") && raw.type !== "image/jpg") {
+    type = raw.type;
+  }
+  const blob = raw.type === type ? raw : new Blob([raw], { type });
+  if (artworkUrl) URL.revokeObjectURL(artworkUrl);
+  artworkUrl = URL.createObjectURL(blob);
+  coverArt.classList.add("hidden");
+  return new Promise((resolve) => {
+    coverArt.onload = () => {
+      coverArt.classList.remove("hidden");
+      coverFallback.classList.add("hidden");
+      resolve(true);
+    };
+    coverArt.onerror = () => {
+      showCoverFallback();
+      resolve(false);
+    };
+    coverArt.src = artworkUrl;
+  });
+}
+
 function escapeHtml(value) {
   return String(value)
     .replaceAll("&", "&amp;")
@@ -206,28 +251,19 @@ async function fillInspector(detail) {
     }
   }
 
-  if (artworkUrl) {
-    URL.revokeObjectURL(artworkUrl);
-    artworkUrl = "";
-  }
-
   if (detail.has_artwork) {
     try {
       const response = await api(`/api/files/${detail.id}/artwork`);
-      const blob = await response.blob();
-      artworkUrl = URL.createObjectURL(blob);
-      coverArt.src = artworkUrl;
-      coverArt.classList.remove("hidden");
-      coverFallback.classList.add("hidden");
+      await displayArtwork(response);
     } catch {
-      coverArt.removeAttribute("src");
-      coverArt.classList.add("hidden");
-      coverFallback.classList.remove("hidden");
+      showCoverFallback();
     }
   } else {
-    coverArt.removeAttribute("src");
-    coverArt.classList.add("hidden");
-    coverFallback.classList.remove("hidden");
+    if (artworkUrl) {
+      URL.revokeObjectURL(artworkUrl);
+      artworkUrl = "";
+    }
+    showCoverFallback();
   }
 }
 
@@ -322,11 +358,11 @@ coverInput.addEventListener("change", async () => {
   if (!selectedId || !coverInput.files[0]) return;
   const body = new FormData();
   body.append("file", coverInput.files[0]);
-  saveStatus.textContent = "Uploading artwork…";
+  saveStatus.textContent = "";
   try {
     await api(`/api/files/${selectedId}/artwork`, { method: "POST", body });
-    await selectFile(selectedId);
-    saveStatus.textContent = "Artwork updated";
+    const detail = await api(`/api/files/${selectedId}`);
+    await fillInspector(detail);
   } catch (error) {
     saveStatus.textContent = error.message;
   } finally {
