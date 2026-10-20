@@ -6,6 +6,12 @@ const loginForm = document.getElementById("login-form");
 const loginError = document.getElementById("login-error");
 const loginButton = document.getElementById("login-button");
 const logoutButton = document.getElementById("logout-button");
+const setupScreen = document.getElementById("setup");
+const setupError = document.getElementById("setup-error");
+const setupSuccess = document.getElementById("setup-success");
+const setupCloseButton = document.getElementById("setup-close");
+const customLibraryForm = document.getElementById("custom-library-form");
+const builtinLibraryButton = document.getElementById("builtin-library");
 const fileList = document.getElementById("file-list");
 const fileSearch = document.getElementById("file-search");
 const inspector = document.getElementById("inspector");
@@ -66,11 +72,55 @@ function signOut(clearUi = true) {
   files = [];
   selectedId = null;
   if (clearUi) {
+    setupScreen.classList.add("hidden");
+    setupScreen.classList.remove("flex");
     showSplash();
     fileList.innerHTML = "";
     inspector.classList.add("hidden");
     inspectorEmpty.classList.remove("hidden");
   }
+}
+
+function showSetup() {
+  document.getElementById("library-path").value = "";
+  setupError.classList.add("hidden");
+  setupSuccess.classList.add("max-h-0");
+  setupSuccess.classList.remove("max-h-20");
+  setupScreen.classList.remove("hidden");
+  setupScreen.classList.add("flex");
+}
+
+function hideSetup() {
+  setupScreen.classList.add("hidden");
+  setupScreen.classList.remove("flex");
+  setupSuccess.classList.add("max-h-0");
+  setupSuccess.classList.remove("max-h-20");
+}
+
+function showSetupSuccess() {
+  setupError.classList.add("hidden");
+  setupSuccess.classList.remove("max-h-0");
+  setupSuccess.classList.add("max-h-20");
+}
+
+async function openStudio() {
+  hideSetup();
+  showDashboard();
+  selectedId = null;
+  inspector.classList.add("hidden");
+  inspectorEmpty.classList.remove("hidden");
+  await loadLibrary();
+}
+
+async function enterApp() {
+  const info = await api("/api/setup");
+  if (!info.configured) {
+    showSetup(info);
+    return;
+  }
+  hideSetup();
+  showDashboard();
+  await loadLibrary();
 }
 
 function formatBytes(bytes) {
@@ -204,8 +254,7 @@ loginForm.addEventListener("submit", async (event) => {
     });
     token = payload.token;
     localStorage.setItem(TOKEN_KEY, token);
-    showDashboard();
-    await loadLibrary();
+    await enterApp();
   } catch (error) {
     loginError.textContent = error.message;
     loginError.classList.remove("hidden");
@@ -213,6 +262,33 @@ loginForm.addEventListener("submit", async (event) => {
     loginButton.disabled = false;
     loginButton.textContent = "Log In";
   }
+});
+
+async function chooseLibrary(mode, path) {
+  setupError.classList.add("hidden");
+  try {
+    await api("/api/setup", {
+      method: "POST",
+      body: JSON.stringify({ mode, path: path || "" }),
+    });
+    showSetupSuccess();
+  } catch (error) {
+    setupSuccess.classList.add("max-h-0");
+    setupSuccess.classList.remove("max-h-20");
+    setupError.textContent = error.message;
+    setupError.classList.remove("hidden");
+  }
+}
+
+customLibraryForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  chooseLibrary("custom", document.getElementById("library-path").value);
+});
+
+builtinLibraryButton.addEventListener("click", () => chooseLibrary("builtin"));
+
+setupCloseButton.addEventListener("click", () => {
+  openStudio();
 });
 
 logoutButton.addEventListener("click", () => signOut());
@@ -262,8 +338,7 @@ async function boot() {
   if (!token) return;
   try {
     await api("/api/me");
-    showDashboard();
-    await loadLibrary();
+    await enterApp();
   } catch {
     signOut(false);
   }

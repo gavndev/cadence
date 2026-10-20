@@ -73,8 +73,9 @@ MP4_KEYS = {
 
 
 def library_root() -> Path:
-    raw = os.environ.get("MUSIC_LIBRARY", "./library")
-    path = Path(raw).expanduser().resolve()
+    from backend.library_config import resolved_library
+
+    path = resolved_library()
     path.mkdir(parents=True, exist_ok=True)
     return path
 
