@@ -3,6 +3,20 @@ body {
   min-height: 100%;
 }
 
+.auth-input,
+.auth-input:hover,
+.auth-input:focus {
+  background-color: #e4e4e7;
+}
+
+.auth-input:-webkit-autofill,
+.auth-input:-webkit-autofill:hover,
+.auth-input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #18181b;
+  box-shadow: 0 0 0 1000px #e4e4e7 inset;
+  transition: background-color 9999s ease-out;
+}
+
 .meta-input {
   width: 100%;
   border-radius: 0.75rem;
