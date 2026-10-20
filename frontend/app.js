@@ -40,10 +40,16 @@ const FIELD_LABELS = {
 
 let token = localStorage.getItem(TOKEN_KEY) || "";
 let files = [];
+let filteredFiles = [];
 let selectedId = null;
 let currentDetail = null;
 let artworkUrl = "";
 let changeLines = [];
+let windowStart = -1;
+let windowEnd = -1;
+let listPaintQueued = false;
+let selectionSerial = 0;
+const ROW_OVERSCAN = 8;
 
 async function api(path, options = {}) {
   const headers = { ...(options.headers || {}) };
@@ -97,6 +103,7 @@ function signOut(clearUi = true) {
     fileList.innerHTML = "";
     inspector.classList.add("hidden");
     inspectorEmpty.classList.remove("hidden");
+    dashboard.classList.remove("is-detail");
   }
 }
 
@@ -125,7 +132,9 @@ function showSetupSuccess() {
 async function openStudio() {
   hideSetup();
   showDashboard();
+  selectionSerial += 1;
   selectedId = null;
+  dashboard.classList.remove("is-detail");
   inspector.classList.add("hidden");
   inspectorEmpty.classList.remove("hidden");
   await loadLibrary();
@@ -157,14 +166,40 @@ function formatDuration(seconds) {
   return `${minutes}:${remainder}`;
 }
 
-function renderFiles(query = "") {
-  const needle = query.trim().toLowerCase();
-  const filtered = files.filter((file) => {
-    const haystack = `${file.name} ${file.relative_path} ${file.folder}`.toLowerCase();
-    return haystack.includes(needle);
-  });
+function rowHeight() {
+  const probe = document.getElementById("row-probe");
+  const measured = probe ? probe.getBoundingClientRect().height : 0;
+  return measured || 68;
+}
 
-  if (!filtered.length) {
+function indexFiles(list) {
+  for (const file of list) {
+    file.haystack = `${file.name}\n${file.relative_path}\n${file.folder}`.toLowerCase();
+  }
+}
+
+function filterFiles(query = "") {
+  const needle = query.trim().toLowerCase();
+  filteredFiles = needle ? files.filter((file) => file.haystack.includes(needle)) : files;
+}
+
+function scheduleListPaint(force = false) {
+  if (force) {
+    windowStart = -1;
+    windowEnd = -1;
+  }
+  if (listPaintQueued) return;
+  listPaintQueued = true;
+  requestAnimationFrame(() => {
+    listPaintQueued = false;
+    paintFileList();
+  });
+}
+
+function paintFileList() {
+  if (!filteredFiles.length) {
+    windowStart = -1;
+    windowEnd = -1;
     fileList.innerHTML = `
       <div class="px-3 py-10 text-center text-sm text-zinc-500">
         ${files.length ? "No matching tracks." : "No audio files yet. Add MP3, FLAC, WAV, M4A, or OGG files to the library folder."}
@@ -172,20 +207,49 @@ function renderFiles(query = "") {
     return;
   }
 
-  fileList.innerHTML = filtered
-    .map(
-      (file) => `
-      <button type="button" data-id="${file.id}" class="file-row ${file.id === selectedId ? "active" : ""}">
-        <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-zinc-900 text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
-          ${file.extension}
-        </span>
+  const height = rowHeight();
+  const view = fileList.clientHeight || height * 8;
+  const start = Math.max(0, Math.floor(fileList.scrollTop / height) - ROW_OVERSCAN);
+  const count = Math.ceil(view / height) + ROW_OVERSCAN * 2;
+  const end = Math.min(filteredFiles.length, start + count);
+  if (start === windowStart && end === windowEnd) return;
+  windowStart = start;
+  windowEnd = end;
+
+  const rows = [];
+  for (let index = start; index < end; index += 1) {
+    const file = filteredFiles[index];
+    rows.push(`<button type="button" data-id="${escapeHtml(file.id)}" class="file-row${file.id === selectedId ? " active" : ""}">
+        <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-zinc-900 text-[10px] font-semibold uppercase tracking-wider text-zinc-400">${escapeHtml(file.extension)}</span>
         <span class="min-w-0 flex-1">
           <span class="block truncate text-sm text-zinc-100">${escapeHtml(file.name)}</span>
           <span class="block truncate text-xs text-zinc-500">${escapeHtml(file.folder || "Library")} · ${formatBytes(file.size)}</span>
         </span>
-      </button>`
-    )
-    .join("");
+      </button>`);
+  }
+
+  fileList.innerHTML = `<div class="file-spacer" style="height:${filteredFiles.length * height}px"><div class="file-window" style="transform:translateY(${start * height}px)">${rows.join("")}</div></div>`;
+}
+
+function markSelected(fileId) {
+  selectedId = fileId;
+  const rows = fileList.querySelectorAll(".file-row");
+  for (const row of rows) {
+    row.classList.toggle("active", row.dataset.id === fileId);
+  }
+}
+
+function showLibraryPane() {
+  selectionSerial += 1;
+  dashboard.classList.remove("is-detail");
+  scheduleListPaint(true);
+}
+
+function showDetailPane() {
+  if (window.matchMedia("(max-width: 1023px)").matches) {
+    dashboard.classList.add("is-detail");
+    document.getElementById("inspector-pane").scrollTop = 0;
+  }
 }
 
 function showCoverFallback() {
@@ -219,6 +283,7 @@ async function displayArtwork(response) {
   if (artworkUrl) URL.revokeObjectURL(artworkUrl);
   artworkUrl = URL.createObjectURL(blob);
   coverArt.classList.add("hidden");
+  coverArt.decoding = "async";
   return new Promise((resolve) => {
     coverArt.onload = () => {
       coverArt.classList.remove("hidden");
@@ -284,9 +349,12 @@ function escapeHtml(value) {
 async function loadLibrary() {
   const data = await api("/api/library");
   files = data.files;
+  indexFiles(files);
   document.getElementById("library-root").textContent = data.root;
   document.getElementById("library-count").textContent = `${data.count} track${data.count === 1 ? "" : "s"}`;
-  renderFiles(fileSearch.value);
+  filterFiles(fileSearch.value);
+  if (fileList.scrollTop !== 0) fileList.scrollTop = 0;
+  scheduleListPaint(true);
 }
 
 async function fillInspector(detail) {
@@ -331,12 +399,15 @@ async function fillInspector(detail) {
 }
 
 async function selectFile(fileId) {
-  selectedId = fileId;
-  renderFiles(fileSearch.value);
+  const serial = ++selectionSerial;
+  markSelected(fileId);
   saveStatus.textContent = "";
   resetChanges();
   const detail = await api(`/api/files/${fileId}`);
+  if (serial !== selectionSerial) return;
   await fillInspector(detail);
+  if (serial !== selectionSerial) return;
+  showDetailPane();
 }
 
 loginForm.addEventListener("submit", async (event) => {
@@ -392,15 +463,60 @@ setupCloseButton.addEventListener("click", () => {
 });
 
 logoutButton.addEventListener("click", () => signOut());
-fileSearch.addEventListener("input", () => renderFiles(fileSearch.value));
+fileSearch.addEventListener("input", () => {
+  filterFiles(fileSearch.value);
+  if (fileList.scrollTop !== 0) fileList.scrollTop = 0;
+  scheduleListPaint(true);
+});
+fileList.addEventListener("scroll", () => scheduleListPaint(false), { passive: true });
+window.addEventListener(
+  "resize",
+  () => {
+    const narrow = window.matchMedia("(max-width: 1023px)").matches;
+    if (!narrow) dashboard.classList.remove("is-detail");
+    else if (selectedId && inspector.classList.contains("hidden") === false) dashboard.classList.add("is-detail");
+    scheduleListPaint(true);
+  },
+  { passive: true },
+);
+
+if (window.visualViewport) {
+  const syncViewport = () => {
+    const viewport = window.visualViewport;
+    const covered = Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop);
+    document.documentElement.style.setProperty("--vv-bottom", `${Math.round(covered)}px`);
+  };
+  window.visualViewport.addEventListener("resize", syncViewport, { passive: true });
+  window.visualViewport.addEventListener("scroll", syncViewport, { passive: true });
+  syncViewport();
+}
 
 fileList.addEventListener("click", (event) => {
   const button = event.target.closest("[data-id]");
   if (button) selectFile(button.dataset.id);
 });
 
+document.getElementById("inspector-back").addEventListener("click", () => showLibraryPane());
+
 changesToggle.addEventListener("click", () => {
   setChangesOpen(changesToggle.getAttribute("aria-expanded") !== "true");
+});
+
+inspector.addEventListener("click", (event) => {
+  const tag = event.target.closest(".tag-label");
+  if (!tag) return;
+  const willOpen = !tag.classList.contains("is-open");
+  const openTags = inspector.querySelectorAll(".tag-label.is-open");
+  for (const openTag of openTags) openTag.classList.remove("is-open");
+  if (willOpen) tag.classList.add("is-open");
+});
+
+inspector.addEventListener("focusin", (event) => {
+  const field = event.target;
+  if (!field.classList || !field.classList.contains("meta-input")) return;
+  window.setTimeout(() => {
+    field.scrollIntoView({ block: "center" });
+  }, 280);
 });
 
 inspector.addEventListener("submit", async (event) => {
