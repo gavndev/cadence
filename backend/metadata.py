@@ -71,6 +71,75 @@ MP4_KEYS = {
     "lyrics": "\xa9lyr",
 }
 
+ID3_KEYS = {
+    "title": "TIT2",
+    "artist": "TPE1",
+    "album": "TALB",
+    "albumartist": "TPE2",
+    "date": "TDRC",
+    "genre": "TCON",
+    "tracknumber": "TRCK",
+    "discnumber": "TPOS",
+    "composer": "TCOM",
+    "comment": "COMM",
+    "lyrics": "USLT",
+}
+
+VORBIS_KEYS = {
+    "title": "TITLE",
+    "artist": "ARTIST",
+    "album": "ALBUM",
+    "albumartist": "ALBUMARTIST",
+    "date": "DATE",
+    "genre": "GENRE",
+    "tracknumber": "TRACKNUMBER",
+    "discnumber": "DISCNUMBER",
+    "composer": "COMPOSER",
+    "comment": "COMMENT",
+    "lyrics": "LYRICS",
+}
+
+APE_KEYS = {
+    "title": "Title",
+    "artist": "Artist",
+    "album": "Album",
+    "albumartist": "Album Artist",
+    "date": "Year",
+    "genre": "Genre",
+    "tracknumber": "Track",
+    "discnumber": "Disc",
+    "composer": "Composer",
+    "comment": "Comment",
+    "lyrics": "Lyrics",
+}
+
+WMA_KEYS = {
+    "title": "Title",
+    "artist": "Author",
+    "album": "WM/AlbumTitle",
+    "albumartist": "WM/AlbumArtist",
+    "date": "WM/Year",
+    "genre": "WM/Genre",
+    "tracknumber": "WM/TrackNumber",
+    "discnumber": "WM/PartOfSet",
+    "composer": "WM/Composer",
+    "comment": "Description",
+    "lyrics": "WM/Lyrics",
+}
+
+
+def tag_keys_for(path: Path) -> dict[str, str]:
+    suffix = path.suffix.lower()
+    if suffix in {".m4a", ".mp4", ".aac"}:
+        return dict(MP4_KEYS)
+    if suffix in {".flac", ".ogg", ".oga", ".opus"}:
+        return dict(VORBIS_KEYS)
+    if suffix == ".wv":
+        return dict(APE_KEYS)
+    if suffix == ".wma":
+        return dict(WMA_KEYS)
+    return dict(ID3_KEYS)
+
 
 def library_root() -> Path:
     from backend.library_config import resolved_library

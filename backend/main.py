@@ -23,6 +23,7 @@ from backend.metadata import (
     list_audio_files,
     read_metadata,
     resolve_audio_path,
+    tag_keys_for,
     write_artwork,
     write_metadata,
 )
@@ -144,6 +145,7 @@ def api_file(file_id: str, _: Annotated[str, Depends(require_library)]):
         "relative_path": relative,
         "extension": path.suffix.lower().lstrip("."),
         "size": path.stat().st_size,
+        "tag_keys": tag_keys_for(path),
         **meta,
     }
 
@@ -174,6 +176,7 @@ def api_update_file(
         "relative_path": relative,
         "extension": path.suffix.lower().lstrip("."),
         "size": path.stat().st_size,
+        "tag_keys": tag_keys_for(path),
         **meta,
     }
 
