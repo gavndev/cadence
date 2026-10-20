@@ -1,11 +1,12 @@
+import os
 import secrets
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-DEFAULT_USERNAME = "admin"
-DEFAULT_PASSWORD = "password"
+DEFAULT_USERNAME = os.environ.get("CADENCE_USERNAME", "admin")
+DEFAULT_PASSWORD = os.environ.get("CADENCE_PASSWORD", "password")
 
 _tokens: set[str] = set()
 _bearer = HTTPBearer(auto_error=False)

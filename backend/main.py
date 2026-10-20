@@ -7,7 +7,15 @@ from fastapi.responses import Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from backend.auth import login, require_auth
+from backend.auth import DEFAULT_USERNAME, login, require_auth
+from backend.library_config import (
+    builtin_label,
+    builtin_library,
+    is_configured,
+    load_settings,
+    save_builtin,
+    save_custom,
+)
 from backend.metadata import (
     extract_artwork,
     library_root,
@@ -36,6 +44,17 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class SetupRequest(BaseModel):
+    mode: str
+    path: str = ""
+
+
+def require_library(_: Annotated[str, Depends(require_auth)]) -> str:
+    if not is_configured():
+        raise HTTPException(status_code=409, detail="Choose a library first")
+    return _
+
+
 class MetadataUpdate(BaseModel):
     title: str = ""
     artist: str = ""
@@ -58,11 +77,41 @@ def api_login(payload: LoginRequest):
 
 @app.get("/api/me")
 def api_me(_: Annotated[str, Depends(require_auth)]):
-    return {"username": "admin"}
+    return {"username": DEFAULT_USERNAME}
+
+
+@app.get("/api/setup")
+def api_setup_status(_: Annotated[str, Depends(require_auth)]):
+    saved = load_settings() or {}
+    return {
+        "configured": is_configured(),
+        "mode": saved.get("mode", ""),
+        "path": saved.get("path", ""),
+        "builtin_path": str(builtin_library()),
+        "builtin_label": builtin_label(),
+    }
+
+
+@app.post("/api/setup")
+def api_setup(payload: SetupRequest, _: Annotated[str, Depends(require_auth)]):
+    if is_configured():
+        raise HTTPException(status_code=409, detail="The library was already chosen")
+    try:
+        if payload.mode == "builtin":
+            path = save_builtin()
+            mode = "builtin"
+        elif payload.mode == "custom":
+            path = save_custom(payload.path)
+            mode = "custom"
+        else:
+            raise HTTPException(status_code=400, detail="Choose a library option")
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"configured": True, "mode": mode, "path": str(path)}
 
 
 @app.get("/api/library")
-def api_library(_: Annotated[str, Depends(require_auth)]):
+def api_library(_: Annotated[str, Depends(require_library)]):
     root = library_root()
     files = list_audio_files()
     return {
@@ -73,7 +122,7 @@ def api_library(_: Annotated[str, Depends(require_auth)]):
 
 
 @app.get("/api/files/{file_id}")
-def api_file(file_id: str, _: Annotated[str, Depends(require_auth)]):
+def api_file(file_id: str, _: Annotated[str, Depends(require_library)]):
     try:
         path = resolve_audio_path(file_id)
     except FileNotFoundError:
@@ -101,7 +150,7 @@ def api_file(file_id: str, _: Annotated[str, Depends(require_auth)]):
 def api_update_file(
     file_id: str,
     payload: MetadataUpdate,
-    _: Annotated[str, Depends(require_auth)],
+    _: Annotated[str, Depends(require_library)],
 ):
     try:
         path = resolve_audio_path(file_id)
@@ -128,7 +177,7 @@ def api_update_file(
 
 
 @app.get("/api/files/{file_id}/artwork")
-def api_artwork(file_id: str, _: Annotated[str, Depends(require_auth)]):
+def api_artwork(file_id: str, _: Annotated[str, Depends(require_library)]):
     try:
         path = resolve_audio_path(file_id)
         data, mime = extract_artwork(path)
@@ -145,7 +194,7 @@ def api_artwork(file_id: str, _: Annotated[str, Depends(require_auth)]):
 @app.post("/api/files/{file_id}/artwork")
 async def api_upload_artwork(
     file_id: str,
-    _: Annotated[str, Depends(require_auth)],
+    _: Annotated[str, Depends(require_library)],
     file: UploadFile = File(...),
 ):
     try:

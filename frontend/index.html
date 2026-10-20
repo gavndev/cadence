@@ -33,12 +33,12 @@
         <p class="mb-3 text-[11px] font-medium uppercase tracking-[0.35em] text-zinc-400">
           Home library
         </p>
-        <h1 class="text-5xl font-semibold tracking-tight text-zinc-900">Cadence</h1>
+        <h1 class="text-5xl font-semibold tracking-tight text-zinc-900">cadence</h1>
         <p class="mt-3 text-sm font-light text-zinc-500">
-          A quiet studio for the tags behind your music.
+          a quiet studio for the tags behind your music.
         </p>
 
-        <form id="login-form" class="mt-10 space-y-4 text-left">
+        <form id="login-form" class="mt-10 space-y-4 pb-4 text-left">
           <label class="block">
             <span class="mb-1.5 block text-xs font-medium uppercase tracking-wider text-zinc-400">
               Username
@@ -49,10 +49,10 @@
               type="text"
               autocomplete="username"
               placeholder="admin"
-              class="auth-input w-full rounded-xl border border-zinc-200 bg-zinc-100 px-4 py-3 text-sm text-zinc-900 outline-none transition-all duration-300 ease-out placeholder:text-zinc-400 hover:bg-zinc-50 focus:scale-105 focus:border-zinc-300 focus:bg-white focus:shadow-lg"
+              class="auth-input w-full rounded-xl border border-zinc-200 px-4 py-3 text-sm text-zinc-900 outline-none transition-all duration-300 ease-out placeholder:text-zinc-400 focus:scale-105 focus:border-zinc-300 focus:shadow-lg"
             />
           </label>
-          <label class="block">
+          <label class="block pb-4">
             <span class="mb-1.5 block text-xs font-medium uppercase tracking-wider text-zinc-400">
               Password
             </span>
@@ -62,7 +62,7 @@
               type="password"
               autocomplete="current-password"
               placeholder="••••••••"
-              class="auth-input w-full rounded-xl border border-zinc-200 bg-zinc-100 px-4 py-3 text-sm text-zinc-900 outline-none transition-all duration-300 ease-out placeholder:text-zinc-400 hover:bg-zinc-50 focus:scale-105 focus:border-zinc-300 focus:bg-white focus:shadow-lg"
+              class="auth-input w-full rounded-xl border border-zinc-200 px-4 py-3 text-sm text-zinc-900 outline-none transition-all duration-300 ease-out placeholder:text-zinc-400 focus:scale-105 focus:border-zinc-300 focus:shadow-lg"
             />
           </label>
           <p id="login-error" class="hidden text-sm text-rose-500"></p>
@@ -74,6 +74,79 @@
             Log In
           </button>
         </form>
+      </div>
+    </section>
+
+    <section
+      id="setup"
+      class="fixed inset-0 z-30 hidden items-center justify-center bg-zinc-900/45 p-5 backdrop-blur-[2px]"
+    >
+      <div
+        id="setup-card"
+        class="w-full max-w-lg overflow-hidden rounded-3xl bg-white text-zinc-900 shadow-2xl"
+      >
+        <div class="px-8 py-8">
+          <p class="text-[11px] font-medium uppercase tracking-[0.35em] text-zinc-400">First setup</p>
+          <h1 class="mt-3 text-4xl font-semibold tracking-tight">where is your music?</h1>
+          <p class="mt-3 text-sm font-light leading-relaxed text-zinc-500">
+            Point Cadence at a folder that already exists on this server. Or use the built-in library,
+            which is stored in AppData and removed if that AppData folder is deleted.
+          </p>
+
+          <form id="custom-library-form" class="mt-8 text-left">
+            <label class="block">
+              <span class="mb-1.5 block text-xs font-medium uppercase tracking-wider text-zinc-400">
+                Folder on the server
+              </span>
+              <input
+                id="library-path"
+                type="text"
+                placeholder="/DATA/Media/Music"
+                class="auth-input w-full rounded-xl border border-zinc-200 px-4 py-3 text-sm text-zinc-900 outline-none transition-all duration-300 ease-out placeholder:text-zinc-400 focus:border-zinc-300 focus:shadow-lg"
+              />
+            </label>
+            <p class="mt-2 text-xs leading-relaxed text-zinc-400">
+              This folder has to exist already. On a CasaOS server, it is usually somewhere under /DATA. The same can be said for any other server.
+            </p>
+            <button
+              type="submit"
+              class="mt-4 w-full rounded-xl bg-zinc-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-zinc-800"
+            >
+              Use this folder
+            </button>
+          </form>
+
+          <div class="mt-8 border-t border-zinc-200 pt-8 text-left">
+            <button
+              type="button"
+              id="builtin-library"
+              class="w-full rounded-xl border border-zinc-200 bg-zinc-100 px-4 py-3 text-sm font-medium text-zinc-800 transition hover:bg-zinc-200"
+            >
+              Use the built-in library
+            </button>
+            <p id="builtin-note" class="mt-2 text-xs leading-relaxed text-zinc-400">
+              Kept in AppData. On CasaOS that folder is /DATA/AppData/cadence/library. On any other
+              system it is the library folder next to the app. If that folder is deleted, the
+              built-in library goes with it.
+            </p>
+          </div>
+
+          <p id="setup-error" class="mt-4 hidden rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-600"></p>
+        </div>
+
+        <div id="setup-success" class="max-h-0 overflow-hidden bg-emerald-600 text-white transition-all duration-500">
+          <div class="flex items-center justify-between gap-4 px-6 py-4">
+            <p class="text-sm font-medium">Success. Your library is set.</p>
+            <button
+              type="button"
+              id="setup-close"
+              class="flex h-8 w-8 items-center justify-center rounded-full text-lg leading-none text-white transition hover:bg-white/15"
+              aria-label="Close"
+            >
+              ×
+            </button>
+          </div>
+        </div>
       </div>
     </section>
 

@@ -73,8 +73,9 @@ MP4_KEYS = {
 
 
 def library_root() -> Path:
-    raw = os.environ.get("MUSIC_LIBRARY", "./library")
-    path = Path(raw).expanduser().resolve()
+    from backend.library_config import resolved_library
+
+    path = resolved_library()
     path.mkdir(parents=True, exist_ok=True)
     return path
 
@@ -447,6 +448,23 @@ def write_artwork(path: Path, data: bytes, mime: str) -> None:
         picture.data = data
         audio.clear_pictures()
         audio.add_picture(picture)
+        audio.save()
+        return
+
+    if suffix in {".wav", ".wave"}:
+        audio = WAVE(path.as_posix())
+        if audio.tags is None:
+            audio.add_tags()
+        audio.tags.delall("APIC")
+        audio.tags.add(
+            APIC(
+                encoding=3,
+                mime=mime,
+                type=3,
+                desc="Cover",
+                data=data,
+            )
+        )
         audio.save()
         return
 
