@@ -1,0 +1,51 @@
+html,
+body {
+  min-height: 100%;
+}
+
+.meta-input {
+  width: 100%;
+  border-radius: 0.75rem;
+  border: 1px solid rgb(39 39 42);
+  background: rgb(24 24 27);
+  padding: 0.65rem 0.85rem;
+  font-size: 0.875rem;
+  color: rgb(244 244 245);
+  outline: none;
+  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+
+.meta-input:focus {
+  border-color: rgb(82 82 91);
+  box-shadow: 0 0 0 3px rgb(39 39 42);
+}
+
+.file-row {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.75rem;
+  border-radius: 0.75rem;
+  padding: 0.7rem 0.8rem;
+  text-align: left;
+  transition: background-color 160ms ease;
+}
+
+.file-row:hover {
+  background: rgb(24 24 27);
+}
+
+.file-row.active {
+  background: rgb(39 39 42);
+}
+
+#splash.is-leaving {
+  opacity: 0;
+  transform: scale(1.03);
+  pointer-events: none;
+}
+
+#dashboard.is-visible {
+  visibility: visible;
+  opacity: 1;
+}

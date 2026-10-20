@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cadence — Music Metadata</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+            },
+          },
+        },
+      };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body class="font-sans antialiased">
+    <section
+      id="splash"
+      class="fixed inset-0 z-20 flex items-center justify-center bg-white transition-all duration-700 ease-in-out"
+    >
+      <div class="w-full max-w-md px-6 text-center">
+        <p class="mb-3 text-[11px] font-medium uppercase tracking-[0.35em] text-zinc-400">
+          Home library
+        </p>
+        <h1 class="text-5xl font-semibold tracking-tight text-zinc-900">Cadence</h1>
+        <p class="mt-3 text-sm font-light text-zinc-500">
+          A quiet studio for the tags behind your music.
+        </p>
+
+        <form id="login-form" class="mt-10 space-y-4 text-left">
+          <label class="block">
+            <span class="mb-1.5 block text-xs font-medium uppercase tracking-wider text-zinc-400">
+              Username
+            </span>
+            <input
+              id="username"
+              name="username"
+              type="text"
+              autocomplete="username"
+              placeholder="admin"
+              class="auth-input w-full rounded-xl border border-zinc-200 bg-zinc-100 px-4 py-3 text-sm text-zinc-900 outline-none transition-all duration-300 ease-out placeholder:text-zinc-400 hover:bg-zinc-50 focus:scale-105 focus:border-zinc-300 focus:bg-white focus:shadow-lg"
+            />
+          </label>
+          <label class="block">
+            <span class="mb-1.5 block text-xs font-medium uppercase tracking-wider text-zinc-400">
+              Password
+            </span>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              autocomplete="current-password"
+              placeholder="••••••••"
+              class="auth-input w-full rounded-xl border border-zinc-200 bg-zinc-100 px-4 py-3 text-sm text-zinc-900 outline-none transition-all duration-300 ease-out placeholder:text-zinc-400 hover:bg-zinc-50 focus:scale-105 focus:border-zinc-300 focus:bg-white focus:shadow-lg"
+            />
+          </label>
+          <p id="login-error" class="hidden text-sm text-rose-500"></p>
+          <button
+            type="submit"
+            id="login-button"
+            class="mt-2 w-full rounded-xl bg-zinc-900 px-4 py-3 text-sm font-medium text-white shadow-sm transition-all duration-300 hover:bg-zinc-800 hover:shadow-md active:scale-[0.98]"
+          >
+            Log In
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <main
+      id="dashboard"
+      class="invisible h-screen overflow-hidden bg-zinc-950 text-zinc-100 opacity-0 transition-all duration-700 ease-in-out"
+    >
+      <header class="flex h-14 items-center justify-between border-b border-zinc-800/80 px-5">
+        <div class="flex items-center gap-3">
+          <div class="h-2 w-2 rounded-full bg-emerald-400"></div>
+          <h1 class="text-sm font-semibold tracking-tight">Cadence</h1>
+          <span class="text-xs text-zinc-500">Metadata studio</span>
+        </div>
+        <div class="flex items-center gap-4 text-xs text-zinc-500">
+          <span id="library-root" class="max-w-md truncate"></span>
+          <span id="library-count"></span>
+          <button
+            id="logout-button"
+            class="rounded-lg border border-zinc-800 px-3 py-1.5 text-zinc-300 transition hover:border-zinc-600 hover:text-white"
+          >
+            Sign out
+          </button>
+        </div>
+      </header>
+
+      <div class="grid h-[calc(100vh-3.5rem)] grid-cols-1 lg:grid-cols-[minmax(280px,38%)_1fr]">
+        <aside class="flex min-h-0 flex-col border-r border-zinc-800/80 bg-zinc-950">
+          <div class="border-b border-zinc-800/80 p-4">
+            <input
+              id="file-search"
+              type="search"
+              placeholder="Search tracks, albums, folders…"
+              class="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none transition placeholder:text-zinc-600 focus:border-zinc-600"
+            />
+          </div>
+          <div id="file-list" class="min-h-0 flex-1 overflow-y-auto p-2"></div>
+        </aside>
+
+        <section class="min-h-0 overflow-y-auto bg-zinc-900/40 p-6">
+          <div id="inspector-empty" class="flex h-full flex-col items-center justify-center text-center">
+            <p class="text-sm font-medium text-zinc-300">Select a track</p>
+            <p class="mt-1 max-w-sm text-sm text-zinc-500">
+              Drop audio files into the library folder, then inspect and edit tags on the right.
+            </p>
+          </div>
+
+          <form id="inspector" class="hidden mx-auto max-w-3xl">
+            <div class="mb-8 flex flex-col gap-6 sm:flex-row">
+              <label class="group relative h-40 w-40 shrink-0 cursor-pointer overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900">
+                <img id="cover-art" alt="" class="hidden h-full w-full object-cover" />
+                <div
+                  id="cover-fallback"
+                  class="flex h-full w-full items-center justify-center text-xs uppercase tracking-widest text-zinc-600"
+                >
+                  Artwork
+                </div>
+                <input id="cover-input" type="file" accept="image/*" class="hidden" />
+                <span
+                  class="pointer-events-none absolute inset-x-0 bottom-0 bg-black/60 py-2 text-center text-[11px] text-zinc-200 opacity-0 transition group-hover:opacity-100"
+                >
+                  Replace cover
+                </span>
+              </label>
+              <div class="min-w-0 flex-1">
+                <p id="file-format" class="text-[11px] uppercase tracking-[0.2em] text-zinc-500"></p>
+                <h2 id="file-heading" class="mt-1 truncate text-2xl font-semibold tracking-tight"></h2>
+                <p id="file-path" class="mt-1 truncate text-sm text-zinc-500"></p>
+                <p id="file-tech" class="mt-3 text-xs text-zinc-500"></p>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <label class="sm:col-span-2">
+                <span class="mb-1 block text-xs text-zinc-500">Title</span>
+                <input name="title" class="meta-input" />
+              </label>
+              <label>
+                <span class="mb-1 block text-xs text-zinc-500">Artist</span>
+                <input name="artist" class="meta-input" />
+              </label>
+              <label>
+                <span class="mb-1 block text-xs text-zinc-500">Album artist</span>
+                <input name="albumartist" class="meta-input" />
+              </label>
+              <label class="sm:col-span-2">
+                <span class="mb-1 block text-xs text-zinc-500">Album</span>
+                <input name="album" class="meta-input" />
+              </label>
+              <label>
+                <span class="mb-1 block text-xs text-zinc-500">Year / date</span>
+                <input name="date" class="meta-input" />
+              </label>
+              <label>
+                <span class="mb-1 block text-xs text-zinc-500">Genre</span>
+                <input name="genre" class="meta-input" />
+              </label>
+              <label>
+                <span class="mb-1 block text-xs text-zinc-500">Track</span>
+                <input name="tracknumber" placeholder="1/10" class="meta-input" />
+              </label>
+              <label>
+                <span class="mb-1 block text-xs text-zinc-500">Disc</span>
+                <input name="discnumber" placeholder="1/1" class="meta-input" />
+              </label>
+              <label>
+                <span class="mb-1 block text-xs text-zinc-500">Composer</span>
+                <input name="composer" class="meta-input" />
+              </label>
+              <label>
+                <span class="mb-1 block text-xs text-zinc-500">Comment</span>
+                <input name="comment" class="meta-input" />
+              </label>
+              <label class="sm:col-span-2">
+                <span class="mb-1 block text-xs text-zinc-500">Lyrics</span>
+                <textarea name="lyrics" rows="5" class="meta-input resize-y"></textarea>
+              </label>
+            </div>
+
+            <div class="mt-6 flex items-center gap-3">
+              <button
+                type="submit"
+                id="save-button"
+                class="rounded-xl bg-white px-5 py-2.5 text-sm font-medium text-zinc-950 transition hover:bg-zinc-200"
+              >
+                Save metadata
+              </button>
+              <p id="save-status" class="text-sm text-zinc-500"></p>
+            </div>
+          </form>
+        </section>
+      </div>
+    </main>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
