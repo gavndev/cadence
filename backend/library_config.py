@@ -25,6 +25,10 @@ def builtin_label() -> str:
     return os.environ.get("CADENCE_BUILTIN_LABEL") or str(builtin_library())
 
 
+def music_library() -> str:
+    return os.environ.get("CADENCE_MUSIC_LIBRARY", "").strip()
+
+
 def load_settings() -> dict | None:
     file = _settings_file()
     if not file.is_file():

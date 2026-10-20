@@ -81,8 +81,8 @@ function signOut(clearUi = true) {
   }
 }
 
-function showSetup() {
-  document.getElementById("library-path").value = "";
+function showSetup(info) {
+  document.getElementById("library-path").value = (info && info.music_path) || "";
   setupError.classList.add("hidden");
   setupSuccess.classList.add("max-h-0");
   setupSuccess.classList.remove("max-h-20");
