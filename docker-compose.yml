@@ -1,0 +1,12 @@
+services:
+  cadence:
+    build: .
+    ports:
+      - "8765:8000"
+    environment:
+      CADENCE_USERNAME: admin
+      CADENCE_PASSWORD: password
+      MUSIC_LIBRARY: /music
+    volumes:
+      - ./library:/music
+    restart: unless-stopped

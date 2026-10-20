@@ -7,7 +7,7 @@ from fastapi.responses import Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from backend.auth import login, require_auth
+from backend.auth import DEFAULT_USERNAME, login, require_auth
 from backend.metadata import (
     extract_artwork,
     library_root,
@@ -58,7 +58,7 @@ def api_login(payload: LoginRequest):
 
 @app.get("/api/me")
 def api_me(_: Annotated[str, Depends(require_auth)]):
-    return {"username": "admin"}
+    return {"username": DEFAULT_USERNAME}
 
 
 @app.get("/api/library")
