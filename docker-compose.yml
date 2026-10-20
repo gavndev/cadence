@@ -7,13 +7,12 @@ services:
     environment:
       CADENCE_USERNAME: admin
       CADENCE_PASSWORD: password
-      CADENCE_CONFIG: /config
-      CADENCE_BUILTIN_LIBRARY: /music
-      CADENCE_BUILTIN_LABEL: ${LIBRARY_PATH:-/DATA/AppData/cadence/library}
-      MUSIC_LIBRARY: /music
+      CADENCE_BUILTIN_LIBRARY: /DATA/AppData/cadence/library
+      CADENCE_MUSIC_LIBRARY: /DATA/Media/Music
+      PUID: "1000"
+      PGID: "1000"
     volumes:
       - /DATA/AppData/cadence/config:/config
-      # Built-in library. The setup screen can also use any folder under /DATA.
-      - ${LIBRARY_PATH:-/DATA/AppData/cadence/library}:/music
-      - /DATA:/DATA
+      - /DATA/AppData/cadence/library:/DATA/AppData/cadence/library
+      - /DATA/Media/Music:/DATA/Media/Music
     restart: unless-stopped

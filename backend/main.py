@@ -13,6 +13,7 @@ from backend.library_config import (
     builtin_library,
     is_configured,
     load_settings,
+    music_library,
     save_builtin,
     save_custom,
 )
@@ -89,6 +90,7 @@ def api_setup_status(_: Annotated[str, Depends(require_auth)]):
         "path": saved.get("path", ""),
         "builtin_path": str(builtin_library()),
         "builtin_label": builtin_label(),
+        "music_path": music_library(),
     }
 
 
