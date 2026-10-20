@@ -1,6 +1,7 @@
 services:
   cadence:
-    build: .
+    image: ghcr.io/gavndev/cadence:latest
+    container_name: cadence
     ports:
       - "8765:8000"
     environment:
@@ -8,5 +9,5 @@ services:
       CADENCE_PASSWORD: password
       MUSIC_LIBRARY: /music
     volumes:
-      - ./library:/music
+      - /DATA/AppData/cadence/library:/music
     restart: unless-stopped
