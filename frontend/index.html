@@ -265,6 +265,25 @@
               </label>
             </div>
 
+            <div id="changes" class="mt-6 overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950">
+              <button
+                type="button"
+                id="changes-toggle"
+                class="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+                aria-expanded="false"
+                aria-controls="changes-log"
+              >
+                <span class="text-xs font-medium uppercase tracking-wider text-zinc-500">Recent changes</span>
+                <svg id="changes-chevron" viewBox="0 0 20 20" class="h-4 w-4 shrink-0 text-zinc-400" aria-hidden="true">
+                  <path d="M5 12.5 10 7.5 15 12.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              </button>
+              <pre
+                id="changes-log"
+                class="hidden max-h-48 overflow-auto border-t border-zinc-800 px-4 py-3 font-mono text-xs leading-relaxed text-zinc-300"
+              ></pre>
+            </div>
+
             <div class="mt-6 flex items-center gap-3">
               <button
                 type="submit"
