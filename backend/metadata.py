@@ -451,6 +451,23 @@ def write_artwork(path: Path, data: bytes, mime: str) -> None:
         audio.save()
         return
 
+    if suffix in {".wav", ".wave"}:
+        audio = WAVE(path.as_posix())
+        if audio.tags is None:
+            audio.add_tags()
+        audio.tags.delall("APIC")
+        audio.tags.add(
+            APIC(
+                encoding=3,
+                mime=mime,
+                type=3,
+                desc="Cover",
+                data=data,
+            )
+        )
+        audio.save()
+        return
+
     try:
         id3 = ID3(path.as_posix())
     except ID3NoHeaderError:
