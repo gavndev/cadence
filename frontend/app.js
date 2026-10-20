@@ -20,11 +20,30 @@ const coverArt = document.getElementById("cover-art");
 const coverFallback = document.getElementById("cover-fallback");
 const coverInput = document.getElementById("cover-input");
 const saveStatus = document.getElementById("save-status");
+const changesToggle = document.getElementById("changes-toggle");
+const changesLog = document.getElementById("changes-log");
+const changesChevron = document.getElementById("changes-chevron");
+
+const FIELD_LABELS = {
+  title: "Title",
+  artist: "Artist",
+  album: "Album",
+  albumartist: "Album artist",
+  date: "Year / date",
+  genre: "Genre",
+  tracknumber: "Track",
+  discnumber: "Disc",
+  comment: "Comment",
+  composer: "Composer",
+  lyrics: "Lyrics",
+};
 
 let token = localStorage.getItem(TOKEN_KEY) || "";
 let files = [];
 let selectedId = null;
+let currentDetail = null;
 let artworkUrl = "";
+let changeLines = [];
 
 async function api(path, options = {}) {
   const headers = { ...(options.headers || {}) };
@@ -226,6 +245,34 @@ function showTagKeys(keys) {
   });
 }
 
+function renderChanges() {
+  changesLog.textContent = changeLines.length ? changeLines.join("\n") : "No changes yet.";
+}
+
+function setChangesOpen(open) {
+  changesToggle.setAttribute("aria-expanded", open ? "true" : "false");
+  changesLog.classList.toggle("hidden", !open);
+  changesChevron.classList.toggle("rotate-180", open);
+}
+
+function resetChanges() {
+  changeLines = [];
+  setChangesOpen(false);
+  renderChanges();
+}
+
+function recordChange(line, isError = false) {
+  changeLines.push(line);
+  renderChanges();
+  if (isError) setChangesOpen(true);
+}
+
+function quoteLog(value) {
+  const text = String(value ?? "").replace(/\s+/g, " ").trim();
+  if (!text) return "(empty)";
+  return text.length > 80 ? `${text.slice(0, 77)}...` : text;
+}
+
 function escapeHtml(value) {
   return String(value)
     .replaceAll("&", "&amp;")
@@ -263,6 +310,8 @@ async function fillInspector(detail) {
     }
   }
 
+  currentDetail = detail;
+
   if (detail.has_artwork) {
     try {
       const response = await api(`/api/files/${detail.id}/artwork`);
@@ -285,6 +334,7 @@ async function selectFile(fileId) {
   selectedId = fileId;
   renderFiles(fileSearch.value);
   saveStatus.textContent = "";
+  resetChanges();
   const detail = await api(`/api/files/${fileId}`);
   await fillInspector(detail);
 }
@@ -349,12 +399,19 @@ fileList.addEventListener("click", (event) => {
   if (button) selectFile(button.dataset.id);
 });
 
+changesToggle.addEventListener("click", () => {
+  setChangesOpen(changesToggle.getAttribute("aria-expanded") !== "true");
+});
+
 inspector.addEventListener("submit", async (event) => {
   event.preventDefault();
   if (!selectedId) return;
   const form = new FormData(inspector);
   const tags = Object.fromEntries(form.entries());
   delete tags[""];
+  const previous = (currentDetail && currentDetail.tags) || {};
+  const path = (currentDetail && currentDetail.relative_path) || "";
+  const changed = Object.keys(FIELD_LABELS).filter((key) => (tags[key] || "") !== (previous[key] || ""));
   saveStatus.textContent = "Saving…";
   try {
     const detail = await api(`/api/files/${selectedId}`, {
@@ -362,9 +419,15 @@ inspector.addEventListener("submit", async (event) => {
       body: JSON.stringify(tags),
     });
     await fillInspector(detail);
+    for (const key of changed) {
+      recordChange(
+        `Changed made to "${FIELD_LABELS[key]}" metadata tag (${quoteLog(tags[key])}) changed at path (${path})`,
+      );
+    }
     saveStatus.textContent = "Saved";
   } catch (error) {
-    saveStatus.textContent = error.message;
+    saveStatus.textContent = "";
+    recordChange(`Error writing metadata at path (${path}): ${error.message}`, true);
   }
 });
 
@@ -394,21 +457,27 @@ function allowedCoverType(header) {
 coverInput.addEventListener("change", async () => {
   if (!selectedId || !coverInput.files[0]) return;
   const file = coverInput.files[0];
+  const path = (currentDetail && currentDetail.relative_path) || document.getElementById("file-path").textContent;
   const header = new Uint8Array(await file.slice(0, 16).arrayBuffer());
   if (!allowedCoverType(header)) {
-    saveStatus.textContent = "Use a JPG, JPEG, PNG, or WEBP image.";
+    recordChange(
+      `Error writing "Artwork" metadata tag at path (${path}): Use a JPG, JPEG, PNG, or WEBP image.`,
+      true,
+    );
     coverInput.value = "";
     return;
   }
   const body = new FormData();
   body.append("file", file);
-  saveStatus.textContent = "";
   try {
     await api(`/api/files/${selectedId}/artwork`, { method: "POST", body });
     const detail = await api(`/api/files/${selectedId}`);
     await fillInspector(detail);
+    recordChange(
+      `Changed made to "Artwork" metadata tag (${quoteLog(file.type || file.name)}) changed at path (${path})`,
+    );
   } catch (error) {
-    saveStatus.textContent = error.message;
+    recordChange(`Error writing "Artwork" metadata tag at path (${path}): ${error.message}`, true);
   } finally {
     coverInput.value = "";
   }
