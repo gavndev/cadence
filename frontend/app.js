@@ -169,6 +169,18 @@ function renderFiles(query = "") {
     .join("");
 }
 
+function showTagKeys(keys) {
+  document.querySelectorAll(".tag-label").forEach((label) => {
+    let tip = label.querySelector(".tag-key");
+    if (!tip) {
+      tip = document.createElement("span");
+      tip.className = "tag-key";
+      label.appendChild(tip);
+    }
+    tip.textContent = (keys && keys[label.dataset.tag]) || "";
+  });
+}
+
 function escapeHtml(value) {
   return String(value)
     .replaceAll("&", "&amp;")
@@ -229,6 +241,8 @@ async function fillInspector(detail) {
     coverArt.classList.add("hidden");
     coverFallback.classList.remove("hidden");
   }
+
+  showTagKeys(detail.tag_keys);
 }
 
 async function selectFile(fileId) {
